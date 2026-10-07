@@ -270,3 +270,8 @@ ls-horror/
 ## Credits
 
 Made by **Goobie**.
+
+The code, UI and note artwork are covered by the MIT licence in `LICENSE`. The monster
+models in `stream/` and the original game sounds in `html/` (ambient, heartbeat,
+jumpscare, growls and screech) are third-party assets and are not covered by it; check
+their original licences before reusing them elsewhere.
