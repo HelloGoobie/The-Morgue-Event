@@ -655,6 +655,7 @@
             const ex = $("sumExtra");
             if (d.rank) ex.appendChild(el("div", "line", "#" + d.rank + " on the leaderboard" + (d.personalBest ? "  ·  new personal best!" : "")));
             else if (d.personalBest) ex.appendChild(el("div", "line", "New personal best!"));
+            if (d.candy) ex.appendChild(el("div", "line found", "+" + d.candy + " Halloween Candy"));
             (d.titles || []).forEach(t => {
                 const name = typeof t === "string" ? t : t.name;
                 const pill = el("div", "line title", "Title unlocked: ");
