@@ -94,6 +94,7 @@ local Config = {
     HeadStartSeconds       = 10,
     EscapeTimeSeconds      = 180,
     FlashlightDrainRate    = 0.05,
+    PermanentBatteryDrainMult = 0.6, -- permanent battery perk: drain at 60% of normal (40% slower)
     StaminaDrainRate       = 1.0,
     StaminaRegenRate       = 0.8,
     ExhaustedRecoverAt     = 30.0,
@@ -338,6 +339,7 @@ local timesCaught = 0
 local previousCamMode = 0
 
 local flashlightBattery = 100.0
+local runPerks = {}
 local playerStamina = 100.0
 local playerExhausted = false
 local actualRealExitIndex = 1
@@ -1104,6 +1106,7 @@ function StartHorrorEvent(chosenDifficulty)
     local token = eventSession
 
     isEventActive = true
+    runPerks = {}
     TriggerServerEvent('horror:runStarted')
     runStartedAt = GetGameTimer()
     lastProgressAt = GetGameTimer()
@@ -1612,7 +1615,7 @@ function StartSurvivalMechanicsLoop(token)
 
             if flashlightBattery > 0 then
                 if GetSelectedPedWeapon(playerPed) == WEAPON_FLASHLIGHT and (IsPlayerFreeAiming(PlayerId()) or IsControlPressed(0, 25)) then
-                    flashlightBattery = math.max(0.0, flashlightBattery - Config.FlashlightDrainRate)
+                    flashlightBattery = math.max(0.0, flashlightBattery - Config.FlashlightDrainRate * (runPerks.battery and Config.PermanentBatteryDrainMult or 1.0))
                     if flashlightBattery <= 0 then
                         ShowNotification("Your flashlight died...", 3000)
                     end
@@ -3772,14 +3775,7 @@ local function CollectEasterEgg()
             GiveWeaponToPed(ped, WEAPON_FLASHLIGHT, 1, false, false)
         end
     elseif item.effect == 'revealExit' then
-        local e = Config.ExitPoints[actualRealExitIndex].coords
-        if exitRevealBlip then RemoveBlip(exitRevealBlip) end
-        exitRevealBlip = AddBlipForCoord(e.x, e.y, e.z)
-        SetBlipSprite(exitRevealBlip, 38)
-        SetBlipColour(exitRevealBlip, 2)
-        BeginTextCommandSetBlipName("STRING")
-        AddTextComponentSubstringPlayerName("The real exit")
-        EndTextCommandSetBlipName(exitRevealBlip)
+        RevealRealExit()
     elseif item.effect == 'taser' then
         local ped = PlayerPedId()
         GiveWeaponToPed(ped, WEAPON_STUNGUN, 100, false, false)
@@ -3993,9 +3989,35 @@ RegisterNetEvent('horror:runResult', function(result)
     SendNUIMessage({
         action = "summaryResult",
         seconds = result.seconds, rank = result.rank, personalBest = result.personalBest == true,
-        previousBest = result.previousBest, titles = result.titles or {},
+        previousBest = result.previousBest, titles = result.titles or {}, candy = result.candy,
     })
     if summaryUntil > 0 then summaryUntil = math.max(summaryUntil, GetGameTimer() + 8000) end
+end)
+
+function RevealRealExit()
+    local exit = Config.ExitPoints[actualRealExitIndex]
+    if not exit then return end
+    local e = exit.coords
+    if exitRevealBlip then RemoveBlip(exitRevealBlip) end
+    exitRevealBlip = AddBlipForCoord(e.x, e.y, e.z)
+    SetBlipSprite(exitRevealBlip, 38)
+    SetBlipColour(exitRevealBlip, 2)
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentSubstringPlayerName("The real exit")
+    EndTextCommandSetBlipName(exitRevealBlip)
+end
+
+-- Permanent event items (checked by the server when the run starts)
+RegisterNetEvent('horror:perks', function(perks)
+    if not isEventActive or type(perks) ~= 'table' then return end
+    runPerks = { keycard = perks.keycard == true, battery = perks.battery == true }
+    if runPerks.keycard then
+        RevealRealExit()
+        ShowNotification("~y~Permanent Key Card~s~ - the real exit is marked on your map.", 6000)
+    end
+    if runPerks.battery then
+        ShowNotification("~y~Permanent Battery~s~ - your flashlight drains slower.", 6000)
+    end
 end)
 
 function EndHorrorEvent(escaped, silent, message)
