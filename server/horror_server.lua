@@ -1,4 +1,14 @@
 local MinSecondsIntoRun = 5
+
+-- Halloween Candy awarded for every successful escape.
+local CandyRewards = { easy = 50, hard = 60, extreme = 80 }
+
+-- Permanent event items (sold on Tebex). Placeholder inventory item ids: replace with
+-- the real Transport Tycoon item ids. Owning the item switches the perk on for every run.
+local PermanentItems = {
+    keycard = 'morgue_perm_keycard',  -- the real exit is marked on the map from the start
+    battery = 'morgue_perm_battery',  -- the flashlight drains slower
+}
 local MinEscapeSeconds = 60
 local MaxCatches = 5
 local UseRoutingBuckets = true
@@ -134,6 +144,24 @@ local function GiveNote(src, key)
     return true
 end
 
+-- TODO(Transport Tycoon): give the player Halloween Candy and return true when it worked.
+-- Placeholder: only logs, so nothing is given until this is replaced.
+local function GiveHalloweenCandy(src, amount)
+    print(('[ls-horror] %s (%d) earned %d Halloween Candy - placeholder, nothing was given'):format(GetPlayerName(src) or '?', src, amount))
+    return false
+end
+
+-- True when the player owns the permanent item for this perk (checked through vRP).
+local function HasPermanentItem(src, perk)
+    local itemId = PermanentItems[perk]
+    local v = itemId and GetVRP()
+    if not v then return false end
+    local ok, userId = pcall(function() return v.getUserId({src}) end)
+    if not ok or not userId then return false end
+    local ok2, amount = pcall(function() return v.getInventoryItemAmount({userId, itemId}) end)
+    return ok2 and (tonumber(amount) or 0) > 0
+end
+
 -- ============================================================
 -- STATS
 -- ============================================================
@@ -261,6 +289,10 @@ RegisterNetEvent('horror:runStarted', function()
     local src = source
     EnterPrivateBucket(src)
     runs[src] = { started = os.time(), noteClaimed = false }
+    TriggerClientEvent('horror:perks', src, {
+        keycard = HasPermanentItem(src, 'keycard'),
+        battery = HasPermanentItem(src, 'battery'),
+    })
     local stats = GetStats(src)
     stats.entered = stats.entered + 1
     CheckTitles(src, stats, nil)
@@ -288,6 +320,10 @@ RegisterNetEvent('horror:runEnded', function(summary)
             result.personalBest = true
         end
         result.rank = SubmitTime(src, r.difficulty, seconds)
+        local candy = CandyRewards[r.difficulty] or 0
+        if candy > 0 and GiveHalloweenCandy(src, candy) then
+            result.candy = candy
+        end
     end
     if r.escaped then
         stats.escapes = stats.escapes + 1
