@@ -35,6 +35,15 @@ while an Outlast-style monster hunts them through the building.
 - **Rare notes.** On top of the normal easter egg there is a small chance that the
   hidden item is a note given by the server, on every difficulty: The Morgue note (4%) or, very rarely, the Night Shift Log tape (0.5%). Only one note
   can be found per run.
+- **Halloween Candy.** Every successful escape pays out Halloween Candy: 50 on Easy,
+  60 on Hard and 80 on Extreme. The payout is a Transport Tycoon hook
+  (`GiveHalloweenCandy`) and the amounts are in `CandyRewards` at the top of the server
+  file. The end screen shows the reward once the hook has given it.
+- **Permanent event items.** Two Tebex items switch on a permanent version of an easter
+  egg for every run: a Permanent Key Card (the real exit is marked on the map from the
+  start) and a Permanent Battery (the flashlight drains 40% slower). The server checks
+  that the player owns the item through vRP when a run starts. The item ids are
+  placeholders in `PermanentItems`.
 - **Stats and chat titles.** The server keeps each player's lifetime stats and
   unlocks chat titles for milestones and challenge runs.
 - **Objectives.** Real fuses are hidden among identical dead ones (3–6 on Easy, up
@@ -207,6 +216,8 @@ Four functions are marked `TODO(Transport Tycoon)`:
 | `PlayerKey` | Your player ID (for example the vRP user ID) |
 | `LoadStats`, `SaveStats` | Your own storage. By default, stats are saved in resource KVP |
 | `GiveTitle` | Your chat title unlock |
+| `GiveHalloweenCandy` | Give the player Halloween Candy and return `true` when it worked. Amounts are in `CandyRewards`. Until it's replaced it only logs and nothing is given |
+| `PermanentItems` | Replace the placeholder item ids (`morgue_perm_keycard`, `morgue_perm_battery`) with the real Transport Tycoon item ids. `HasPermanentItem` checks the amount through `vRP.getInventoryItemAmount` |
 | `GiveNote` | Already calls `vRP.tryGiveInventoryItem({user_id, item, 1})`; set the item IDs in `NoteItems` at the top of `server/horror_server.lua` (`morgue`, `morgue_tape`) |
 
 Until they're replaced, chat titles are only printed in the server
@@ -270,8 +281,3 @@ ls-horror/
 ## Credits
 
 Made by **Goobie**.
-
-The code, UI and note artwork are covered by the MIT licence in `LICENSE`. The monster
-models in `stream/` and the original game sounds in `html/` (ambient, heartbeat,
-jumpscare, growls and screech) are third-party assets and are not covered by it; check
-their original licences before reusing them elsewhere.
